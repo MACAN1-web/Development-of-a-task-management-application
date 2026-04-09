@@ -1,0 +1,50 @@
+# 📋 Task Manager
+
+Приложение для управления задачами на Python (Flask) + SQLite.
+
+## 🚀 Быстрый старт
+
+```bash
+# 1. Установить зависимости
+pip install -r requirements.txt
+
+# 2. Запустить приложение
+python app.py
+
+# 3. Открыть в браузере
+# http://localhost:5000
+```
+
+## 📁 Структура проекта
+
+```
+taskmanager/
+├── app.py          # Flask-сервер, все API-маршруты
+├── database.py     # Работа с SQLite базой данных
+├── requirements.txt
+├── tasks.db        # База данных (создаётся автоматически)
+└── static/
+    └── index.html  # Весь фронтенд (HTML + CSS + JS)
+```
+
+## 🔌 API эндпоинты
+
+| Метод  | URL                  | Описание                          |
+|--------|----------------------|-----------------------------------|
+| GET    | /api/tasks           | Получить все задачи               |
+| GET    | /api/tasks?status=done | Фильтр по статусу               |
+| GET    | /api/tasks?priority=high | Фильтр по приоритету          |
+| POST   | /api/tasks           | Создать задачу                    |
+| PUT    | /api/tasks/{id}      | Обновить задачу                   |
+| DELETE | /api/tasks/{id}      | Удалить задачу                    |
+| GET    | /api/stats           | Статистика                        |
+
+## 🗃 Поля задачи
+
+| Поле        | Тип    | Значения                          |
+|-------------|--------|-----------------------------------|
+| title       | string | Название (обязательно, макс 200)  |
+| description | string | Описание                          |
+| status      | string | todo / in_progress / done         |
+| priority    | string | low / medium / high               |
+| due_date    | string | YYYY-MM-DD (опционально)          |
