@@ -197,16 +197,6 @@
       gap: 14px;
     }
 
-    /* Add form card */
-    .add-form-card {
-      background: var(--glass-bg3);
-      border: 1px solid rgba(168,255,62,0.2);
-      backdrop-filter: blur(var(--blur));
-      border-radius: 16px; padding: 18px;
-      display: none; animation: fadeUp 0.18s ease;
-    }
-    .add-form-card.open { display: block; }
-
     /* Filters */
     .filters-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
     .qf {
@@ -494,7 +484,7 @@
         <span class="tagline">Task Manager</span>
       </div>
     </div>
-    <button class="btn-ghost-add" onclick="toggleForm()">
+    <button class="btn-ghost-add" onclick="openCreateModal()">
       <span class="add-icon">+</span>
       <span>Новая задача</span>
     </button>
@@ -528,37 +518,6 @@
     <div class="content-grid">
       <div class="view active" id="view-tasks">
         <div class="tasks-side">
-        <!-- Inline add form -->
-        <div class="add-form-card" id="addForm">
-          <div class="f-field" style="margin-bottom:10px">
-            <label class="f-label">Название *</label>
-            <input class="f-input" type="text" id="newTitle" placeholder="Что нужно сделать?" maxlength="200"/>
-          </div>
-          <div class="f-row2">
-            <div class="f-field">
-              <label class="f-label">Приоритет</label>
-              <select class="f-input" id="newPriority">
-                <option value="low">🟢 Низкий</option>
-                <option value="medium" selected>🟡 Средний</option>
-                <option value="high">🔴 Высокий</option>
-              </select>
-            </div>
-            <div class="f-field">
-              <label class="f-label">Дедлайн</label>
-              <input class="f-input" type="date" id="newDue"/>
-              <div class="due-hint">📅 появится в календаре</div>
-            </div>
-          </div>
-          <div class="f-field" style="margin-top:9px">
-            <label class="f-label">Описание</label>
-            <textarea class="f-input" id="newDesc" rows="2" placeholder="Подробности..."></textarea>
-          </div>
-          <div class="f-actions">
-            <button class="btn-ghost" onclick="toggleForm()">Отмена</button>
-            <button class="btn-lime" onclick="createTask()">Создать</button>
-          </div>
-        </div>
-
         <div class="tasks-panel">
           <div class="tp-header">
             <span class="tp-title">Задачи</span>
@@ -636,26 +595,30 @@
   </div>
 </div>
 
-<!-- Modal: Add from calendar -->
-<div class="overlay" id="calModal">
+<!-- Modal: Create task -->
+<div class="overlay" id="createModal">
   <div class="modal">
     <h2>Новая задача</h2>
-    <div class="modal-date" id="calModalDate"></div>
-    <div class="m-field"><label class="f-label">Название *</label><input class="f-input" type="text" id="calTitle" placeholder="Что нужно сделать?" maxlength="200"/></div>
-    <div class="m-field"><label class="f-label">Описание</label><textarea class="f-input" id="calDesc" rows="2" placeholder="Подробности..."></textarea></div>
+    <div class="modal-date" id="createModalDate"></div>
+    <div class="m-field"><label class="f-label">Название *</label><input class="f-input" type="text" id="createTitle" placeholder="Что нужно сделать?" maxlength="200"/></div>
+    <div class="m-field"><label class="f-label">Описание</label><textarea class="f-input" id="createDesc" rows="2" placeholder="Подробности..."></textarea></div>
     <div class="f-row2" style="margin-top:0">
       <div class="m-field"><label class="f-label">Приоритет</label>
-        <select class="f-input" id="calPriority">
+        <select class="f-input" id="createPriority">
           <option value="low">🟢 Низкий</option>
           <option value="medium" selected>🟡 Средний</option>
           <option value="high">🔴 Высокий</option>
         </select>
       </div>
-      <div class="m-field"><label class="f-label">Дата</label><input class="f-input" type="date" id="calDue" style="opacity:.75"/></div>
+      <div class="m-field">
+        <label class="f-label">Дата</label>
+        <input class="f-input" type="date" id="createDue" style="opacity:.75"/>
+        <div class="due-hint">📅 задача появится и в календаре, и в списке</div>
+      </div>
     </div>
     <div class="f-actions" style="margin-top:14px">
-      <button class="btn-ghost" onclick="closeCalModal()">Отмена</button>
-      <button class="btn-lime"  onclick="createCalTask()">Создать задачу</button>
+      <button class="btn-ghost" onclick="closeCreateModal()">Отмена</button>
+      <button class="btn-lime" onclick="submitCreateTask()">Создать задачу</button>
     </div>
   </div>
 </div>
@@ -785,21 +748,6 @@ function cardHTML(t){
 }
 
 // ── CRUD ─────────────────────────────────────────────────────────
-async function createTask(){
-  const title=document.getElementById('newTitle').value.trim();
-  if(!title){toast('Введите название','err');return;}
-  const due=document.getElementById('newDue').value||null;
-  const res=await fetch('/api/tasks',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({title,description:document.getElementById('newDesc').value.trim(),
-      priority:document.getElementById('newPriority').value,due_date:due})});
-  if(!res.ok){const e=await res.json();toast(e.error,'err');return;}
-  document.getElementById('newTitle').value='';
-  document.getElementById('newDesc').value='';
-  document.getElementById('newDue').value='';
-  document.getElementById('addForm').classList.remove('open');
-  toast('Задача создана'+(due?' и добавлена в календарь 📅':''),'ok');
-  refresh();
-}
 async function toggleDone(id,isDone){
   await fetch(`/api/tasks/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({status:isDone?'todo':'done'})});
@@ -845,6 +793,11 @@ function setF(f,btn){
   renderTasks();
 }
 function fCard(f,card){
+  const tasksTabBtn=document.querySelectorAll('.tab-btn')[0];
+  if(!document.getElementById('view-tasks').classList.contains('active') && tasksTabBtn){
+    switchTab('tasks',tasksTabBtn);
+  }
+
   if(filter===f){
     filter='all';
     document.querySelectorAll('.stat-card').forEach(c=>c.classList.remove('active'));
@@ -860,8 +813,6 @@ function fCard(f,card){
   }
   renderTasks();
 }
-function toggleForm(){document.getElementById('addForm').classList.toggle('open');}
-
 function switchTab(name,btn){
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
@@ -899,7 +850,7 @@ function mkCell(grid,day,year,month,other,tbd,tod){
   const t=tbd[ds]||[];
   const cell=document.createElement('div');
   cell.className='cal-cell'+(other?' other':'')+(isToday?' today':'')+(t.length?' has-t':'');
-  cell.onclick=()=>openCalModal(ds);
+  cell.onclick=()=>openCreateModal(ds);
   const dn=document.createElement('div');dn.className='day-num';
   dn.innerHTML=`<span class="day-n">${day}</span><span class="day-add">+</span>`;
   cell.appendChild(dn);
@@ -918,32 +869,38 @@ function mkCell(grid,day,year,month,other,tbd,tod){
   cell.appendChild(w);grid.appendChild(cell);
 }
 
-let _calDate='';
+let _createDate='';
 function openCalendarTaskEdit(e,id){
   e.stopPropagation();
   openEdit(id);
 }
-function openCalModal(ds){
-  _calDate=ds;
-  const[y,m,d]=ds.split('-');
-  document.getElementById('calModalDate').textContent='📅 '+parseInt(d)+' '+MOS[parseInt(m)-1]+' '+y;
-  document.getElementById('calDue').value=ds;
-  document.getElementById('calTitle').value='';
-  document.getElementById('calDesc').value='';
-  document.getElementById('calPriority').value='medium';
-  document.getElementById('calModal').classList.add('open');
-  setTimeout(()=>document.getElementById('calTitle').focus(),80);
+function openCreateModal(ds=''){
+  _createDate=ds || '';
+  document.getElementById('createModalDate').textContent=formatCreateModalDate(_createDate);
+  document.getElementById('createDue').value=_createDate;
+  document.getElementById('createTitle').value='';
+  document.getElementById('createDesc').value='';
+  document.getElementById('createPriority').value='medium';
+  document.getElementById('createModal').classList.add('open');
+  setTimeout(()=>document.getElementById('createTitle').focus(),80);
 }
-function closeCalModal(){document.getElementById('calModal').classList.remove('open');}
-async function createCalTask(){
-  const title=document.getElementById('calTitle').value.trim();
+function closeCreateModal(){document.getElementById('createModal').classList.remove('open');}
+function formatCreateModalDate(ds){
+  if(!ds) return 'Без даты: можно создать задачу только для списка';
+  const[y,m,d]=ds.split('-');
+  return '📅 '+parseInt(d)+' '+MOS[parseInt(m)-1]+' '+y;
+}
+async function submitCreateTask(){
+  const title=document.getElementById('createTitle').value.trim();
   if(!title){toast('Введите название','err');return;}
+  const due=document.getElementById('createDue').value||null;
   const res=await fetch('/api/tasks',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({title,description:document.getElementById('calDesc').value.trim(),
-      priority:document.getElementById('calPriority').value,
-      due_date:document.getElementById('calDue').value||_calDate})});
+    body:JSON.stringify({title,description:document.getElementById('createDesc').value.trim(),
+      priority:document.getElementById('createPriority').value,due_date:due})});
   if(!res.ok){const e=await res.json();toast(e.error,'err');return;}
-  closeCalModal(); toast('Задача добавлена!','ok'); refresh();
+  closeCreateModal();
+  toast('Задача создана'+(due?' и добавлена в календарь 📅':''),'ok');
+  refresh();
 }
 
 // ── Helpers ────────────────────────────────────────────────────────
@@ -955,9 +912,8 @@ function toast(msg,type='ok'){
 function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
 document.getElementById('editModal').addEventListener('click',function(e){if(e.target===this)closeEdit();});
-document.getElementById('calModal').addEventListener('click',function(e){if(e.target===this)closeCalModal();});
-document.getElementById('newTitle').addEventListener('keydown',e=>{if(e.key==='Enter')createTask();});
-document.getElementById('calTitle').addEventListener('keydown',e=>{if(e.key==='Enter')createCalTask();});
+document.getElementById('createModal').addEventListener('click',function(e){if(e.target===this)closeCreateModal();});
+document.getElementById('createTitle').addEventListener('keydown',e=>{if(e.key==='Enter')submitCreateTask();});
 
 refresh();
 </script>
